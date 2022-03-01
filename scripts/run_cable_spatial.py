@@ -29,9 +29,10 @@ import glob
 import shutil
 import tempfile
 import argparse
+from pathlib import Path
 
-from cable_utils import adjust_nml_file
-from cable_utils import generate_spatial_qsub_script
+from scripts.cable_utils import adjust_nml_file
+from scripts.cable_utils import generate_spatial_qsub_script
 
 
 def cmd_line_parser():
@@ -92,31 +93,31 @@ class RunCable(object):
         ncpus="48",
     ):
 
-        self.met_dir = met_dir
-        self.log_dir = log_dir
-        self.output_dir = output_dir
-        self.aux_dir = aux_dir
-        self.restart_dir = restart_dir
-        self.spinup_dir = spinup_dir
-        self.grid_dir = os.path.join(self.aux_dir, "offline")
+        self.met_dir = Path(met_dir)
+        self.log_dir = Path(log_dir)
+        self.output_dir = Path(output_dir)
+        self.aux_dir = Path(aux_dir)
+        self.restart_dir = Path(restart_dir)
+        self.spinup_dir = Path(spinup_dir)
+        self.grid_dir = Path(self.aux_dir, "offline")
         self.soil_fname = soil_fname
-        self.biogeophys_dir = os.path.join(self.aux_dir, "core/biogeophys")
-        self.biogeochem_dir = os.path.join(self.aux_dir, "core/biogeochem/")
-        self.veg_fname = os.path.join(self.biogeophys_dir, veg_fname)
-        self.soil_fname = os.path.join(self.biogeophys_dir, soil_fname)
-        self.grid_fname = os.path.join(tmp_ancillary_dir, grid_fname)
-        self.mask_fname = os.path.join(tmp_ancillary_dir, mask_fname)
-        self.namelist_dir = namelist_dir
-        self.co2_fname = os.path.join(tmp_ancillary_dir, co2_fname)
-        self.qsub_fname = qsub_fname
+        self.biogeophys_dir = Path(self.aux_dir, "core/biogeophys")
+        self.biogeochem_dir = Path(self.aux_dir, "core/biogeochem/")
+        self.veg_fname = Path(self.biogeophys_dir, veg_fname)
+        self.soil_fname = Path(self.biogeophys_dir, soil_fname)
+        self.grid_fname = Path(tmp_ancillary_dir, grid_fname)
+        self.mask_fname = Path(tmp_ancillary_dir, mask_fname)
+        self.namelist_dir = Path(namelist_dir)
+        self.co2_fname = Path(tmp_ancillary_dir, co2_fname)
+        self.qsub_fname = Path(qsub_fname)
         self.cable_src = cable_src
-        self.cable_exe = os.path.join(cable_src, "offline/%s" % (cable_exe))
+        self.cable_exe = Path(cable_src, "offline/%s" % (cable_exe))
         self.spin_up = spin_up
         self.met_data = met_data
 
         if nml_fname is None:
             nml_fname = "cable.nml"
-            base_nml_file = os.path.join(self.grid_dir, "%s" % (nml_fname))
+            base_nml_file = Path(self.grid_dir, "%s" % (nml_fname))
             shutil.copyfile(base_nml_file, nml_fname)
             self.nml_fname = nml_fname
         else:
@@ -129,64 +130,54 @@ class RunCable(object):
 
     def initialise_stuff(self):
 
-        if not os.path.exists(self.restart_dir):
+        if not self.restart_dir.exists:
             os.makedirs(self.restart_dir)
 
-        if not os.path.exists(self.output_dir):
+        if not self.output_dir.exists:
             os.makedirs(self.output_dir)
 
-        if not os.path.exists(self.log_dir):
+        if not self.log_dir.exists:
             os.makedirs(self.log_dir)
 
-        if not os.path.exists(self.namelist_dir):
+        if not self.namelist_dir.exists:
             os.makedirs(self.namelist_dir)
 
-        # delete local executable, copy a local copy and use that
-        local_exe = os.path.basename(self.cable_exe)
-        if os.path.isfile(local_exe):
-            os.remove(local_exe)
-        shutil.copy(self.cable_exe, local_exe)
+        # # delete local executable, copy a local copy and use that
+        # local_exe = self.cable_exe.name
+        # if os.path.isfile(local_exe):
+        #     os.remove(local_exe)
+        # shutil.copy(self.cable_exe, local_exe)
 
-    def setup_nml_file(self):
+    # def setup_nml_file(self):
 
-        replace_dict = {
-            "filename%met": "''",  # not needed for GSWP3 run
-            "filename%type": "'%s'" % (self.grid_fname),
-            "filename%veg": "'%s'" % (self.veg_fname),
-            "filename%soil": "'%s'" % (self.soil_fname),
-            "gswpfile%mask": "'%s'" % (self.mask_fname),
-            "output%averaging": "'monthly'",
-            "spinup": ".FALSE.",
-            "cable_user%FWSOIL_SWITCH": "'standard'",
-            "cable_user%GS_SWITCH": "'medlyn'",
-            "cable_user%GW_MODEL": ".FALSE.",
-            "cable_user%or_evap": ".FALSE.",
-            "cable_user%GSWP3": ".TRUE.",
-            "cable_user%MetType": "'gswp3'",
-            "verbose": ".FALSE.",
-        }
-        adjust_nml_file(self.nml_fname, replace_dict)
+    #     replace_dict = {
+    #         "filename%met": "''",  # not needed for GSWP3 run
+    #         "filename%type": "'%s'" % (self.grid_fname),
+    #         "filename%veg": "'%s'" % (self.veg_fname),
+    #         "filename%soil": "'%s'" % (self.soil_fname),
+    #         "gswpfile%mask": "'%s'" % (self.mask_fname),
+    #         "output%averaging": "'monthly'",
+    #         "spinup": ".FALSE.",
+    #         "cable_user%FWSOIL_SWITCH": "'standard'",
+    #         "cable_user%GS_SWITCH": "'medlyn'",
+    #         "cable_user%GW_MODEL": ".FALSE.",
+    #         "cable_user%or_evap": ".FALSE.",
+    #         "cable_user%GSWP3": ".TRUE.",
+    #         "cable_user%MetType": "'gswp3'",
+    #         "verbose": ".FALSE.",
+    #     }
+    #     adjust_nml_file(self.nml_fname, replace_dict)
 
     def run_qsub_script(self, start_yr, end_yr):
 
         # Create a qsub script for simulations if missing, there is one of spinup
         # and one for simulations, so two qsub_fnames
-        if not os.path.isfile(self.qsub_fname):
-            generate_spatial_qsub_script(
-                self.qsub_fname,
-                self.walltime,
-                self.mem,
-                self.ncpus,
-                spin_up=self.spin_up,
-            )
+        generate_spatial_qsub_script(
+            self.qsub_fname, self.walltime, self.mem, self.ncpus, start_yr, end_yr
+        )
 
         # Run qsub script
-        qs_cmd = "qsub -v start_yr=%d,end_yr=%d,co2_fname=%s %s" % (
-            start_yr,
-            end_yr,
-            self.co2_fname,
-            self.qsub_fname,
-        )
+        qs_cmd = f"qsub {self.qsub_fname}"
         error = subprocess.call(qs_cmd, shell=True)
         if error is 1:
             raise ("Job failed to submit\n")
@@ -195,54 +186,38 @@ class RunCable(object):
         self, log_fname, out_fname, restart_in_fname, restart_out_fname, year, co2_conc
     ):
 
-        out_log_fname = os.path.join(self.log_dir, log_fname)
-        out_fname = os.path.join(self.output_dir, out_fname)
+        out_log_fname = Path(self.log_dir, log_fname)
+        out_fname = Path(self.output_dir, out_fname)
 
         # i.e. no restart file for first spinup year
         if restart_in_fname == "missing":
             restart_in_fname = ""
         else:
-            restart_in_fname = os.path.join(self.restart_dir, restart_in_fname)
-        restart_out_fname = os.path.join(self.restart_dir, restart_out_fname)
+            restart_in_fname = Path(self.restart_dir, restart_in_fname)
+        restart_out_fname = Path(self.restart_dir, restart_out_fname)
 
         if self.met_data == "GSWP3":
-            rainf_fn = os.path.join(
-                self.met_dir, "Rainf/GSWP3.BC.Rainf.3hrMap.%s.nc" % (year)
-            )
-            snowf_fn = os.path.join(
-                self.met_dir, "Snowf/GSWP3.BC.Snowf.3hrMap.%s.nc" % (year)
-            )
-            lwdown_fn = os.path.join(
+            rainf_fn = Path(self.met_dir, "Rainf/GSWP3.BC.Rainf.3hrMap.%s.nc" % (year))
+            snowf_fn = Path(self.met_dir, "Snowf/GSWP3.BC.Snowf.3hrMap.%s.nc" % (year))
+            lwdown_fn = Path(
                 self.met_dir, "LWdown/GSWP3.BC.LWdown.3hrMap.%s.nc" % (year)
             )
-            swdown_fn = os.path.join(
+            swdown_fn = Path(
                 self.met_dir, "SWdown/GSWP3.BC.SWdown.3hrMap.%s.nc" % (year)
             )
-            psurf_fn = os.path.join(
-                self.met_dir, "PSurf/GSWP3.BC.PSurf.3hrMap.%s.nc" % (year)
-            )
-            qair_fn = os.path.join(
-                self.met_dir, "Qair/GSWP3.BC.Qair.3hrMap.%s.nc" % (year)
-            )
-            wind_fn = os.path.join(
-                self.met_dir, "Wind/GSWP3.BC.Wind.3hrMap.%s.nc" % (year)
-            )
-            tair_fn = os.path.join(
-                self.met_dir, "Tair/GSWP3.BC.Tair.3hrMap.%s.nc" % (year)
-            )
+            psurf_fn = Path(self.met_dir, "PSurf/GSWP3.BC.PSurf.3hrMap.%s.nc" % (year))
+            qair_fn = Path(self.met_dir, "Qair/GSWP3.BC.Qair.3hrMap.%s.nc" % (year))
+            wind_fn = Path(self.met_dir, "Wind/GSWP3.BC.Wind.3hrMap.%s.nc" % (year))
+            tair_fn = Path(self.met_dir, "Tair/GSWP3.BC.Tair.3hrMap.%s.nc" % (year))
         elif self.met_data == "AWAP":
-            rainf_fn = os.path.join(self.met_dir, "Rainf/AWAP.Rainf.3hr.%s.nc" % (year))
-            snowf_fn = os.path.join(self.met_dir, "Snowf/AWAP.Snowf.3hr.%s.nc" % (year))
-            lwdown_fn = os.path.join(
-                self.met_dir, "LWdown/AWAP.LWdown.3hr.%s.nc" % (year)
-            )
-            swdown_fn = os.path.join(
-                self.met_dir, "SWdown/AWAP.SWdown.3hr.%s.nc" % (year)
-            )
-            psurf_fn = os.path.join(self.met_dir, "PSurf/AWAP.PSurf.3hr.%s.nc" % (year))
-            qair_fn = os.path.join(self.met_dir, "Qair/AWAP.Qair.3hr.%s.nc" % (year))
-            wind_fn = os.path.join(self.met_dir, "Wind/AWAP.Wind.3hr.%s.nc" % (year))
-            tair_fn = os.path.join(self.met_dir, "Tair/AWAP.Tair.3hr.%s.nc" % (year))
+            rainf_fn = Path(self.met_dir, "Rainf/AWAP.Rainf.3hr.%s.nc" % (year))
+            snowf_fn = Path(self.met_dir, "Snowf/AWAP.Snowf.3hr.%s.nc" % (year))
+            lwdown_fn = Path(self.met_dir, "LWdown/AWAP.LWdown.3hr.%s.nc" % (year))
+            swdown_fn = Path(self.met_dir, "SWdown/AWAP.SWdown.3hr.%s.nc" % (year))
+            psurf_fn = Path(self.met_dir, "PSurf/AWAP.PSurf.3hr.%s.nc" % (year))
+            qair_fn = Path(self.met_dir, "Qair/AWAP.Qair.3hr.%s.nc" % (year))
+            wind_fn = Path(self.met_dir, "Wind/AWAP.Wind.3hr.%s.nc" % (year))
+            tair_fn = Path(self.met_dir, "Tair/AWAP.Tair.3hr.%s.nc" % (year))
 
         replace_dict = {
             "filename%log": "'%s'" % (out_log_fname),
@@ -267,7 +242,7 @@ class RunCable(object):
 
         # save copy as we go for debugging - remove later
         shutil.copyfile(
-            self.nml_fname, os.path.join(self.namelist_dir, "cable_%d.nml" % (year))
+            self.nml_fname, Path(self.namelist_dir, "cable_%d.nml" % (year))
         )
 
     def sort_restart_files(self, start_yr, end_yr):
@@ -280,8 +255,8 @@ class RunCable(object):
             fn_in = "restart_%d.nc" % (end_yr)
             fn_out = "restart_%d.nc" % (start_yr)
 
-            restart_in_fname = os.path.join(self.restart_dir, fn_in)
-            restart_out_fname = os.path.join(self.spinup_dir, fn_out)
+            restart_in_fname = Path(self.restart_dir, fn_in)
+            restart_out_fname = Path(self.spinup_dir, fn_out)
 
             shutil.copyfile(restart_in_fname, restart_out_fname)
 
@@ -292,8 +267,8 @@ class RunCable(object):
                 os.makedirs(self.restart_dir)
 
             fn_in = "restart_%d.nc" % (start_yr)
-            restart_in_fname = os.path.join(self.spinup_dir, fn_in)
-            restart_out_fname = os.path.join(self.restart_dir, fn_in)
+            restart_in_fname = Path(self.spinup_dir, fn_in)
+            restart_out_fname = Path(self.restart_dir, fn_in)
             shutil.copyfile(restart_in_fname, restart_out_fname)
 
 

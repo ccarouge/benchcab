@@ -5,7 +5,7 @@ from setup.machine_inits import date
 ## Repositories to test, default is head of the trunk against personal repo.
 ## But if trunk is false, repo1 could be anything
 #
-trunk = True
-repo1 = f"Trunk_{date}"
-share_branch = False
+trunk = False
+repo1 = f"integration"
+share_branch = True
 repos = [repo1, repo2]

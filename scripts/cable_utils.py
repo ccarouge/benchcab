@@ -19,6 +19,8 @@ import pandas as pd
 import xarray as xr
 import numpy as np
 import matplotlib.pyplot as plt
+import shutil
+import shlex, subprocess
 
 
 def adjust_nml_file(fname, replacements):
@@ -238,7 +240,7 @@ def change_LAI(met_fname, site, fixed=None, lai_dir=None):
     nc_var = nc.createVariable("LAI", "f4", ("time", "y", "x"))
     nc.setncatts(
         {
-            "long_name": u"Leaf Area Index",
+            "long_name": "Leaf Area Index",
         }
     )
     if lai_dir is not None:
@@ -330,3 +332,66 @@ def check_steady_state(experiment_id, output_dir, num, debug=True):
         )
 
     return not_in_equilibrium
+
+
+def remove_directories(dir_path):
+    """Given a path to a directory, it will remove all its content and the directory
+    itself
+
+    dir_path: str or Path to identify the directory to remove"""
+
+    try:
+        shutil.rmtree(dir_path)
+    except OSError as e:
+        print("Error: %s : %s" % (dir_path, e.strerror))
+
+
+def generate_spatial_qsub_script(
+    qsub_fname, walltime, mem, ncpus, exe_path, start_yr, end_yr
+):
+
+    ofname = qsub_fname
+    if os.path.exists(ofname):
+        os.remove(ofname)
+
+    with open(ofname, "w") as f:
+
+        f.write("#!/bin/bash\n")
+        f.write("\n")
+        f.write("#PBS -m ae\n")
+        f.write("#PBS -q normal\n")
+        f.write(f"#PBS -l walltime={walltime}\n")
+        f.write(f"#PBS -l mem={mem}\n")
+        f.write(f"#PBS -l ncpus={ncpus}\n")
+        f.write(f"#PBS -j oe\n")
+        f.write(f"#PBS -l wd\n")
+        f.write(f"#PBS -l storage=gdata/w35+gdata/wd9+gdata/hh5\n")
+        f.write(f"\n")
+        f.write(f"module load dot\n")
+        f.write(f"module add intel-mpi/2019.6.166\n")
+        f.write(f"module add netcdf/4.7.1\n")
+        f.write(f"module load conda\n")
+        f.write(f"\n")
+
+        f.write(f"start_yr={start_yr}\n")
+        f.write(f'prev_yr="$(({start_yr}-1))"\n')
+        f.write(f"end_yr={end_yr}\n")
+
+        f.write(f"year=$start_yr\n")
+        f.write(f"while [ $year -le $end_yr ]\n")
+        f.write(f"do\n")
+
+        f.write('    restart_in="restart_in.nc"\n')
+        f.write("    nml_name=`ls -1 cable_$year*.nml`\n")
+        f.write(f"    mpirun {exe_path} < $nml_name >>test_out.txt\n")
+        f.write("\n")
+        # Rename outputs to add the year
+        f.write("cp restart_in.nc restart_$year.nc\n")
+        f.write("cp cable_log.txt cable_log_$year.txt\n")
+        f.write("cp cable_out.nc cable_out_$year.nc\n")
+        f.write("cp restart_out.nc restart_in.nc\n")
+        f.write("    year=$[$year+1]\n")
+
+        f.write("\n")
+        f.write("done\n")
+        f.write("\n")
