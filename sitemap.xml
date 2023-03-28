@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://cable-lsm.github.io/benchcab/</loc>
+         <loc>https://cable-lsm.github.io/benchcab/1.0/</loc>
          <lastmod>2023-03-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://cable-lsm.github.io/benchcab/user_guide/</loc>
+         <loc>https://cable-lsm.github.io/benchcab/1.0/user_guide/</loc>
          <lastmod>2023-03-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://cable-lsm.github.io/benchcab/user_guide/config_options/</loc>
+         <loc>https://cable-lsm.github.io/benchcab/1.0/user_guide/config_options/</loc>
          <lastmod>2023-03-28</lastmod>
          <changefreq>daily</changefreq>
     </url>
