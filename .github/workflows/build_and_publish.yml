@@ -12,9 +12,24 @@ jobs:
     steps:
       - name: Checkout # Necessary to access local action
         uses: actions/checkout@v3
+      
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
 
-      - name: Build docs
-        uses: ./.github/actions/build
+      - name: Install dependencies for mkdocs
+        run: | 
+          pip install -r mkdocs-requirements.txt
+        shell: bash
+
+      - name: Build documentation
+        run: |
+          git fetch origin gh-pages --depth=1
+          git config user.name Claire
+          git config user.email claire.carouge@anu.edu.au
+          # outputs to "site" directory
+          mike deploy 1.0 latest
+        shell: bash
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
