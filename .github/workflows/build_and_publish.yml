@@ -23,18 +23,10 @@ jobs:
         shell: bash
 
       - name: Build documentation
-        run: |
+        run:  |
           git fetch origin gh-pages --depth=1
+          VERSION=$(python setup.py --version)
           git config user.name Claire
           git config user.email claire.carouge@anu.edu.au
-          # outputs to "site" directory
-          mike deploy 1.0 latest
+          mike deploy -p $VERSION stable
         shell: bash
-
-      - name: Deploy
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          branch: gh-pages # default
-          folder: site
-          clean-exclude: pr-preview/ # don't overwrite previews
